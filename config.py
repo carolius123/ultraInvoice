@@ -26,17 +26,16 @@ def nextMonth(yy_mm):
 def initLogger(level, logPath):
     log = logging.getLogger('ultraInvoice')
     LogLevel = {'NOTSET': 0, 'DEBUG': 10, 'INFO': 20, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
-    logLevel = LogLevel.get(level.upper(), 'CRITICAL')
+    logLevel = LogLevel.get(level.upper(), '20')
     log.setLevel(logLevel)
     formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(filename)s %(lineno)d\t%(message)s')
     logFile = os.path.join(logPath, 'ultraInvoice.log')
     fh = logging.FileHandler(logFile, encoding='GBK')
     fh.setFormatter(formatter)
     log.addHandler(fh)
-    if logLevel < 20:
-        fh = logging.StreamHandler()
-        fh.setFormatter(formatter)
-        log.addHandler(fh)
+    fh = logging.StreamHandler()
+    fh.setFormatter(formatter)
+    log.addHandler(fh)
     log.debug("stared!")
     return log
 
@@ -64,7 +63,7 @@ if os.path.exists(TmpPath):
     rmtree(TmpPath)
     time.sleep(1)  # 防止立刻建立目录出错
 [os.mkdir(folder) for folder in (WorkPath, MetaPath, TmpPath) if not os.path.exists(folder)]
-log = initLogger(Argv.get('log', 'CRITICAL'), TmpPath)
+log = initLogger(Argv.get('log', 'INFO'), TmpPath)
 
 downloadMetaData()
 

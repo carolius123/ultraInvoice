@@ -20,7 +20,7 @@ from Mail import Mail
 class Mr(object):
     SumCols = {'UsageQuantity', 'CostBeforeTax', 'Credits', 'TaxAmount', 'TotalCost'}
     CsvWriters = {}
-    Receiver = ['maling1@ultrapower.com.cn', 'jiayf@ultrapower.com.cn', 'liujiaxin@ultrapower.com.cn']
+    Receiver = ['maling1@ultrapower.com.cn', 'jiayf@ultrapower.com.cn']
 
     def __init__(self):
         pass
@@ -112,23 +112,25 @@ class Mr(object):
 
     def merge(self, customerName):
         consolidateRows = {}
+        accounts = set()  # 实际产生费用的账户
         fileName = mrFileName('', customerName)
         fileFullname = os.path.join(cfg.TmpPath, fileName)
-        with open(fileFullname, 'a+', encoding='utf-8', newline='') as fp:
-            fp.seek(0)
-            row = None
+        row = None
+        with open(fileFullname, 'r', encoding='utf-8', newline='') as fp:
             for row in csv.DictReader(fp):
                 if row['RecordType'] != 'LinkedLineItem':
                     continue
-                usageType = row['UsageType']
-                if usageType not in consolidateRows:
-                    for col in self.SumCols:
-                        row[col] = float(row[col])
-                    consolidateRows[usageType] = row
+                accounts.add(row['LinkedAccountId'])
+                key = (row['ProductCode'], row['UsageType'])
+                for col in self.SumCols: row[col] = float(row[col])
+                if key not in consolidateRows:
+                    consolidateRows[key] = row
                 else:
-                    for col in self.SumCols:
-                        consolidateRows[usageType][col] += float(row[col])
+                    for col in self.SumCols: consolidateRows[key][col] += row[col]
 
+        if len(accounts) < 2:
+            return  # 只有一个有费用账号
+        with open(fileFullname, 'a', encoding='utf-8', newline='') as fp:
             csvWriter = csv.DictWriter(fp, fieldnames=row.keys())
             statementTotalRow = getStatementTotal(row.copy())
             for consolidateRow in consolidateRows.values():
@@ -152,7 +154,7 @@ class Mr(object):
 
         monthBill = monthBills[''] if '' in monthBills else list(monthBills.values())[0]
         invoice = [(product, round(v['TotalCost'], 2))
-                   for product, v in monthBill.items() if product != 'TotalCost' and abs(v['TotalCost']) > 0.001]
+                   for product, v in monthBill.items() if product != 'TotalCost' and abs(v['TotalCost']) > 0.005]
         invoice.sort(key=lambda v: abs(v[1]), reverse=True)
         if len(invoice) > 15:  # 最多保留15行
             invoice[14] = ('Others', sum(v for d, v in invoice[14:]))

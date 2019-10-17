@@ -16,6 +16,8 @@ import config as cfg
 
 
 class XlsBill(object):
+    LastDay = {'01': '31', '03': '31', '05': '31', '07': '31', '08': '31', '10': '31', '12': '31',
+               '02': '28', '04': '30', '06': '30', '09': '30', '11': '30'}
 
     def __init__(self, exchange_rate, currency='USD'):
         self.currency = currency
@@ -36,6 +38,7 @@ class XlsBill(object):
         styles['Name'] = getStyle(sheet, 6, 2)
         styles['Addr'] = getStyle(sheet, 7, 2)
         styles['Tel'] = getStyle(sheet, 8, 2)
+        styles['billMonth'] = getStyle(sheet, 8, 3)
         styles['Amount'] = getStyle(sheet, 26, 3)
         styles['TotalRmb'] = getStyle(sheet, 27, 1)
         styles['AmountRmb'] = getStyle(sheet, 27, 3)
@@ -72,7 +75,7 @@ class XlsBill(object):
 
     def __writeLine(self, sheet, key, bill, layer):
         self.xlsRow += 1
-        description = 'Account:%s' % ('All' if (not key and layer == 1) else key)
+        description = 'Account:%s' % (key if key else 'All') if layer == 1 else key
         description = '  ' * layer + description
         usageQuantity = bill['UsageQuantity'] if layer == 4 else ''
         line = (layer, description, usageQuantity, '', bill['TotalCost'])
@@ -97,13 +100,19 @@ class XlsBill(object):
         writeCell(sheet, styles['Addr'], cust_obj.get('Addr', ''))
         writeCell(sheet, styles['Tel'], cust_obj.get('Tel', ''))
 
+        first_join_date = cust_obj.get('FirstJoinedTime', '')
+        yy, mm = cfg.BillMonth[:2], cfg.BillMonth[2:]
+        start_dd = first_join_date[-2:] if first_join_date[:2] == yy and first_join_date[3:5] == mm else '01'
+        end_dd = '29' if mm == '02' and int(yy) / 4 == 0 else self.LastDay[mm]
+        writeCell(sheet, styles['billMonth'], '20%s/%s/%s - %s/%s' % (yy, mm, start_dd, mm, end_dd))
+
         for lines, (product, fee) in enumerate(invoice):
             writeCell(sheet, styles[2], product, row=lines + 11)
             writeCell(sheet, styles[3], fee, row=lines + 11)
         writeCell(sheet, styles['Amount'], xlwt.Formula("SUM(D12:D26)"))
 
         if self.currency == 'RMB2USD':
-            writeCell(sheet, styles['TotalRmb'], '应付人民币总额(税率：17%%，汇率：%g)' % self.exchangeRate)
+            writeCell(sheet, styles['TotalRmb'], '应付人民币总额(汇率：%g)' % self.exchangeRate)
             writeCell(sheet, styles['AmountRmb'], xlwt.Formula("D27*(1+B29)*%g" % self.exchangeRate))
 
 
@@ -120,3 +129,4 @@ def getStyle(sheet, row, col):
     row_ = sheet._Worksheet__rows.get(row)
     style = row_._Row__cells.get(col) if row_ else None
     return {'row': row, 'col': col, 'style': style}
+
