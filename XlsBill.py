@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @File  : XlsBill.py
+# @Author: Sui Huafeng
+# @Date  : 2019/8/28
+# @Desc  : 为每个客户生成xls格式的月账单，为收美元的客户生成Invoice
+#
+import json
+import os
+import random
+from datetime import date
+import xlrd
+import xlwt
+from xlutils import copy
+import config as cfg
+
+
+class XlsBill(object):
+
+    def __init__(self, exchange_rate, currency='USD'):
+        self.currency = currency
+        self.styles = dict(Invoice={}, Bill={})
+        self.template = xlrd.open_workbook(os.path.join(cfg.MetaPath, 'Invoice%s.xls' % currency), formatting_info=True)
+        self.headers = {self.template.sheet_names()[i]: self.template.sheet_by_index(i).row_values(0)
+                        for i in range(1, 2)}
+        self.book = copy.copy(self.template)
+        self.__setStyle()
+        self.exchangeRate = exchange_rate
+        self.xlsRow = 1
+
+    def __setStyle(self):
+        sheet, styles = self.book.get_sheet('Invoice'), self.styles['Invoice']
+        styles.update({col: getStyle(sheet, 11, col) for col in range(1, 4)})
+        styles['No'] = getStyle(sheet, 4, 3)
+        styles['Date'] = getStyle(sheet, 5, 3)
+        styles['Name'] = getStyle(sheet, 6, 2)
+        styles['Addr'] = getStyle(sheet, 7, 2)
+        styles['Tel'] = getStyle(sheet, 8, 2)
+        styles['Amount'] = getStyle(sheet, 26, 3)
+        styles['TotalRmb'] = getStyle(sheet, 27, 1)
+        styles['AmountRmb'] = getStyle(sheet, 27, 3)
+
+        sheet, styles = self.book.get_sheet('Bill'), self.styles['Bill']
+        for layer in range(6):
+            styles[layer] = {header: getStyle(sheet, layer, col) for col, header in enumerate(self.headers['Bill'])}
+
+    def run(self, customerName):
+        with open(os.path.join(cfg.TmpPath, '%s.json' % customerName), 'r', encoding='utf-8') as fp:
+            monthBills, invoice = json.load(fp)
+
+        self.book = copy.copy(self.template)
+        self.fillInvoice(customerName, invoice)
+        self.fillBill(monthBills)
+        file_name = os.path.join(cfg.TmpPath, '%s-%s.xls' % (customerName, cfg.BillMonth))
+        self.book.save(file_name)  # 保存文件
+        cfg.log.info('%s has been saved.' % file_name)
+
+    def fillBill(self, monthBills):
+        sheet = self.book.get_sheet('Bill')
+        colWidth = [sheet.col(i).width for i in range(10)]
+        for account, l1Bill in monthBills.items():
+            sheet = self.__addSheet(sheet, colWidth, account)
+            self.xlsRow = 0  # 重设xls当前行
+            self.__writeLine(sheet, account, l1Bill, 1)
+            for product, l2Bill in l1Bill.items():
+                self.__writeLine(sheet, product, l2Bill, 2)
+                for usageType, l3Bill in l2Bill.items():
+                    self.__writeLine(sheet, usageType, l3Bill, 3)
+                    for description, l4Bill in l3Bill.items():
+                        self.__writeLine(sheet, description, l4Bill, 4)
+            sheet = None
+
+    def __writeLine(self, sheet, key, bill, layer):
+        self.xlsRow += 1
+        description = 'Account:%s' % ('All' if (not key and layer == 1) else key)
+        description = '  ' * layer + description
+        usageQuantity = bill['UsageQuantity'] if layer == 4 else ''
+        line = (layer, description, usageQuantity, '', bill['TotalCost'])
+        bill.pop('TotalCost')
+        for header, data in zip(self.headers['Bill'], line):
+            writeCell(sheet, self.styles['Bill'][layer][header], data, row=self.xlsRow)
+
+    def __addSheet(self, sheet, colWidth, account):
+        if not sheet:
+            sheet = self.book.add_sheet(account, cell_overwrite_ok=True)
+            for idx, header in enumerate(self.headers['Bill']):
+                sheet.col(idx).width = colWidth[idx]
+                writeCell(sheet, self.styles['Bill'][0][header], header)
+        return sheet
+
+    def fillInvoice(self, customerName, invoice):
+        cust_obj = cfg.Customers[customerName]
+        sheet, styles = self.book.get_sheet('Invoice'), self.styles['Invoice']
+        writeCell(sheet, styles['No'], date.today().strftime('P/I %Y%m') + '%04d' % random.randint(1000, 9999))
+        writeCell(sheet, styles['Date'], date.today().strftime('%Y-%m-%d'))
+        writeCell(sheet, styles['Name'], cust_obj.get('Name', customerName))
+        writeCell(sheet, styles['Addr'], cust_obj.get('Addr', ''))
+        writeCell(sheet, styles['Tel'], cust_obj.get('Tel', ''))
+
+        for lines, (product, fee) in enumerate(invoice):
+            writeCell(sheet, styles[2], product, row=lines + 11)
+            writeCell(sheet, styles[3], fee, row=lines + 11)
+        writeCell(sheet, styles['Amount'], xlwt.Formula("SUM(D12:D26)"))
+
+        if self.currency == 'RMB2USD':
+            writeCell(sheet, styles['TotalRmb'], '应付人民币总额(税率：17%%，汇率：%g)' % self.exchangeRate)
+            writeCell(sheet, styles['AmountRmb'], xlwt.Formula("D27*(1+B29)*%g" % self.exchangeRate))
+
+
+def writeCell(sheet, template_cell, value, row=None, col=None):
+    row = template_cell['row'] if row is None else row
+    col = template_cell['col'] if col is None else col
+    sheet.write(row, col, value)
+    cell_style = getStyle(sheet, row, col)['style'] if template_cell['style'] else None
+    if cell_style:
+        cell_style.xf_idx = template_cell['style'].xf_idx
+
+
+def getStyle(sheet, row, col):
+    row_ = sheet._Worksheet__rows.get(row)
+    style = row_._Row__cells.get(col) if row_ else None
+    return {'row': row, 'col': col, 'style': style}

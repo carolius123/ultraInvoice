@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="bill.aws" uploadOnCheckin="811aeb35-761d-4b70-86bf-64f017b44021">
+    <serverData>
+      <paths name="bill.aws">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ec2-user/ultraInvoice" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myUploadOnCheckinName" value="bill.aws" />
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
