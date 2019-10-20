@@ -20,7 +20,7 @@ from Mail import Mail
 class Mr(object):
     SumCols = {'UsageQuantity', 'CostBeforeTax', 'Credits', 'TaxAmount', 'TotalCost'}
     CsvWriters = {}
-    Receiver = ['maling1@ultrapower.com.cn', 'jiayf@ultrapower.com.cn']
+    Receiver = os.environ.get('receiver', 'maling1@ultrapower.com.cn,jiayf@ultrapower.com.cn').split(',')
 
     def __init__(self):
         pass

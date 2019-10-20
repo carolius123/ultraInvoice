@@ -23,20 +23,11 @@ def nextMonth(yy_mm):
 
 
 # 初始化日志设置
-def initLogger(level, logPath):
-    log = logging.getLogger('ultraInvoice')
+def initLogger(level):
+    log = logging.getLogger()
     LogLevel = {'NOTSET': 0, 'DEBUG': 10, 'INFO': 20, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
-    logLevel = LogLevel.get(level.upper(), '20')
+    logLevel = LogLevel.get(level.upper(), '30')
     log.setLevel(logLevel)
-    formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(filename)s %(lineno)d\t%(message)s')
-    logFile = os.path.join(logPath, 'ultraInvoice.log')
-    fh = logging.FileHandler(logFile, encoding='GBK')
-    fh.setFormatter(formatter)
-    log.addHandler(fh)
-    fh = logging.StreamHandler()
-    fh.setFormatter(formatter)
-    log.addHandler(fh)
-    log.debug("stared!")
     return log
 
 
@@ -53,17 +44,17 @@ def downloadMetaData():
 
 
 Bucket = 'billing-up-972221870813'
-Argv = {p.split('=')[0]: p.split('=')[-1] for p in sys.argv[1:]}
-BillMonth = Argv.get('month', (date(date.today().year, date.today().month, 1) - timedelta(days=10)).strftime('%y%m'))
+BillMonth = os.environ.get('month', (date(date.today().year, date.today().month, 1)
+                                     - timedelta(days=10)).strftime('%y%m'))
 
-WorkPath = Argv.get('path', '/tmp')
+WorkPath = os.environ.get('path', '/tmp')
 MetaPath = os.path.join(WorkPath, 'meta')  # 保存阶梯价格、Credit等配置和消费日志数据
 TmpPath = os.path.join(WorkPath, 'tmp')  # 保存中间结果
 if os.path.exists(TmpPath):
     rmtree(TmpPath)
     time.sleep(1)  # 防止立刻建立目录出错
 [os.mkdir(folder) for folder in (WorkPath, MetaPath, TmpPath) if not os.path.exists(folder)]
-log = initLogger(Argv.get('log', 'INFO'), TmpPath)
+log = initLogger(os.environ.get('log', 'WARNING'))
 
 downloadMetaData()
 
