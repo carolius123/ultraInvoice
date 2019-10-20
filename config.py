@@ -56,7 +56,7 @@ Bucket = 'billing-up-972221870813'
 Argv = {p.split('=')[0]: p.split('=')[-1] for p in sys.argv[1:]}
 BillMonth = Argv.get('month', (date(date.today().year, date.today().month, 1) - timedelta(days=10)).strftime('%y%m'))
 
-WorkPath = Argv.get('path', '.')
+WorkPath = Argv.get('path', '/tmp')
 MetaPath = os.path.join(WorkPath, 'meta')  # 保存阶梯价格、Credit等配置和消费日志数据
 TmpPath = os.path.join(WorkPath, 'tmp')  # 保存中间结果
 if os.path.exists(TmpPath):

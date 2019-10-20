@@ -216,16 +216,17 @@ def add(bill, row):
             bill['UsageQuantity'] += float(row['UsageQuantity'])
 
 
-def sendBill(customerName):
-    file_names = ['%s-%s.xls' % (customerName, cfg.BillMonth), mrFileName('', customerName)]
-    subject = 'AWS账单(20%s-%s)' % (cfg.BillMonth[:2], cfg.BillMonth[2:])
-    text = '尊敬的 %s 客户:<br>附件是贵司(20%s-%s)月AWS账单。请查收<br>' \
-           % (customerName, cfg.BillMonth[:2], cfg.BillMonth[2:])
+def sendBill():
     with Mail() as mail:
-        mail.send(Mr.Receiver, file_names, sub=subject, text=text)
+        for customerName in cfg.Customers.keys():
+            file_names = ['%s-%s.xls' % (customerName, cfg.BillMonth), mrFileName('', customerName)]
+            subject = 'AWS账单(20%s-%s)%s' % (cfg.BillMonth[:2], cfg.BillMonth[2:], customerName)
+            text = '尊敬的 %s 客户:<br>附件是贵司(20%s-%s)月AWS账单。请查收<br>' \
+                   % (customerName, cfg.BillMonth[:2], cfg.BillMonth[2:])
+            mail.send(Mr.Receiver, file_names, sub=subject, text=text)
 
 
-if __name__ == '__main__':
+def run():
     mr = Mr()
     for payerAccount in cfg.payers:
         mr.split(payerAccount)
@@ -242,4 +243,16 @@ if __name__ == '__main__':
         mr.bill(customerName)  # 生成分层账单数据和收据数据
         currency = cust_obj.get('Currency', 'USD').upper()
         XlsBill(exchangeRate, currency).run(customerName)  # 生成xls账单
-        sendBill(customerName)  # 邮件发送账单
+    sendBill()  # 邮件发送账单
+
+
+def lambda_handler(event, context):
+    run()
+    return {
+        'statusCode': 200,
+        'body': json.dumps('UltraInvoice Finished!')
+    }
+
+
+if __name__ == '__main__':
+    run()
