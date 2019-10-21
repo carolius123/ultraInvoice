@@ -22,9 +22,6 @@ class Mr(object):
     CsvWriters = {}
     Receiver = os.environ.get('receiver', 'maling1@ultrapower.com.cn,jiayf@ultrapower.com.cn').split(',')
 
-    def __init__(self):
-        pass
-
     # 按aws账户拆账
     def split(self, payerAccount):
         try:
@@ -47,6 +44,7 @@ class Mr(object):
             self.CsvWriters[fileName][0].writerow(rowTotal)
         self.__close()
 
+    # 拆分行写入csv文件
     def __writeItems(self, file_fullname, accountTotal, payerAccount):
         removeCredit = cfg.payers.get(payerAccount, {}).get('removeCredit', False)
         with open(file_fullname, 'r', encoding='utf-8', newline='') as fp:
@@ -97,7 +95,8 @@ class Mr(object):
         # TBD
         return
 
-    def __open(self, file_name, row):  # 新建输出文件
+    # 新建输出文件
+    def __open(self, file_name, row):
         fileFullname = os.path.join(cfg.TmpPath, file_name)
         exists = os.path.exists(fileFullname)
         fp = open(fileFullname, 'a', encoding='utf-8', newline='')
@@ -110,6 +109,7 @@ class Mr(object):
             fp.close()
         self.CsvWriters = {}
 
+    # 汇聚成客户的总账单
     def merge(self, customerName):
         consolidateRows = {}
         accounts = set()  # 实际产生费用的账户
@@ -145,6 +145,7 @@ class Mr(object):
                 statementTotalRow[col] = str(statementTotalRow[col])
             csvWriter.writerow(statementTotalRow)
 
+    # 汇总成靠近AWS系统内形式的分层的的月账单
     def bill(self, customerName):
         monthBills = {}
         fileName = mrFileName('', customerName)
@@ -165,6 +166,7 @@ class Mr(object):
             json.dump((monthBills, invoice), fp, indent=2, sort_keys=True)
 
 
+# 下载AWS MR文件
 def downloadAwsMR(payerAccount):
     bucket = boto3.resource('s3').Bucket(cfg.Bucket)
     fileName = '%s-aws-billing-csv-20%s-%s.csv' % (payerAccount, cfg.BillMonth[:2], cfg.BillMonth[2:])
@@ -246,6 +248,7 @@ def run():
     sendBill()  # 邮件发送账单
 
 
+# AWSLamda调用的入口函数
 def lambda_handler(event, context):
     run()
     return {
