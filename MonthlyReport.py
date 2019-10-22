@@ -12,6 +12,12 @@ import json
 import os
 import boto3
 import csv
+
+if __name__ == '__main__':
+    os.environ['receiver'] = 'sui.hf@163.com'
+    os.environ['month'] = '1910'
+    os.environ['log'] = 'DEBUG'
+
 import config as cfg
 from XlsBill import XlsBill
 from Mail import Mail
@@ -21,6 +27,34 @@ class Mr(object):
     SumCols = {'UsageQuantity', 'CostBeforeTax', 'Credits', 'TaxAmount', 'TotalCost'}
     CsvWriters = {}
     Receiver = os.environ.get('receiver', 'maling1@ultrapower.com.cn,jiayf@ultrapower.com.cn').split(',')
+    RegionCode2Name = {'ap-northeast-1': 'Asia Pacific (Tokyo)', 'ap-northeast-2': 'Asia Pacific (Seoul)',
+                       'ap-east-1': 'Asia Pacific (Hong Kong)', 'ap-southeast-1': 'Asia Pacific (Singapore)',
+                       'ap-southeast-2': 'Asia Pacific (Sydney)', 'ap-south-1': 'Asia Pacific (Mumbai)',
+                       'ca-central-1': 'Canada (Central)', 'eu-west-1': 'EU (Ireland)',
+                       'eu-central-1': 'EU (Germany)', 'eu-north-1': 'EU (Stockholm)',
+                       'eu-west-2': 'EU (London)', 'eu-west-3': 'EU (Paris)',
+                       'me-south-1': 'Middle East (Bahrain)', 'sa-east-1': 'South America (Sao Paulo)',
+                       'us-gov-east-1': 'AWS GovCloud (US-East)', 'us-gov-west-1': 'AWS GovCloud (US-West)',
+                       'us-east-1': 'US East (Northern Virginia)', 'us-east-2': 'US East (Ohio)',
+                       'us-west-1': 'US West (Northern California)', 'us-west-2': 'US West (Oregon)',
+                       'ap-northeast-3': 'Asia Pacific (Osaka-Local)'
+                       }
+    RegionAbbr2Name = {'APN1': 'Asia Pacific (Tokyo)', 'APN2': 'Asia Pacific (Seoul)',
+                       'APE1': 'Asia Pacific (Hong Kong)', 'APS1': 'Asia Pacific (Singapore)',
+                       'APS2': 'Asia Pacific (Sydney)', 'APS3': 'Asia Pacific (Mumbai)',
+                       'CAN1': 'Canada (Central)', 'EU': 'EU (Ireland)',
+                       'EUC1': 'EU (Germany)', 'EUN1': 'EU (Stockholm)',
+                       'EUW2': 'EU (London)', 'EUW3': 'EU (Paris)',
+                       'MES1': 'Middle East (Bahrain)', 'SAE1': 'South America (Sao Paulo)',
+                       'UGW1': 'AWS GovCloud (US-West)', 'USE1': 'US East (Northern Virginia)',
+                       'USE2': 'US East (Ohio)', 'USW1': 'US West (Northern California)',
+                       'USW2': 'US West (Oregon)', 'APN3': 'Asia Pacific (Osaka-Local)',
+                       'UGE1': 'AWS GovCloud (US-East)'
+                       }
+    CloudFrontRegionAbbr2Name = {'AP': 'Asia Pacific', 'AU': 'Australia', 'CA': 'Canada', 'EU': 'Europe',
+                                 'IN': 'India', 'JP': 'Japan', 'ME': 'Middle East', 'SA': 'South Africa',
+                                 'ZA': 'South America', 'US': 'United States'
+                                 }
 
     # 按aws账户拆账
     def split(self, payerAccount):
@@ -48,6 +82,7 @@ class Mr(object):
     def __writeItems(self, file_fullname, accountTotal, payerAccount):
         removeCredit = cfg.payers.get(payerAccount, {}).get('removeCredit', False)
         with open(file_fullname, 'r', encoding='utf-8', newline='') as fp:
+            fp.readline()  # 抛弃首行提示信息 Don't see your tags in the report....
             for row in csv.DictReader(fp):
                 if row['RecordType'] != 'LinkedLineItem':  # 只拆分资源消费记录
                     continue
@@ -151,7 +186,7 @@ class Mr(object):
         fileName = mrFileName('', customerName)
         fileFullname = os.path.join(cfg.TmpPath, fileName)
         with open(fileFullname, 'r', encoding='utf-8', newline='') as fp:
-            [add(monthBills, row) for row in csv.DictReader(fp) if row['RecordType'][-8:] == 'LineItem']
+            [self.add(monthBills, row) for row in csv.DictReader(fp) if row['RecordType'][-8:] == 'LineItem']
 
         monthBill = monthBills[''] if '' in monthBills else list(monthBills.values())[0]
         invoice = [(product, round(v['TotalCost'], 2))
@@ -165,11 +200,92 @@ class Mr(object):
         with open(os.path.join(cfg.TmpPath, '%s.json' % customerName), 'w', encoding='utf-8') as fp:
             json.dump((monthBills, invoice), fp, indent=2, sort_keys=True)
 
+    def add(self, bill, row):
+        productName = row['ProductName']
+        productName = productName[4:] if productName[:4] == 'AWS ' \
+            else productName[7:] if productName[:7] == 'Amazon ' \
+            else productName[6:] if productName[:6] == 'Amazon' \
+            else productName
+        layers = (row['LinkedAccountId'], productName, 'Region', 'l4', row['ItemDescription'])
+        for layer, col in enumerate(layers):
+            if layer == 2:  # region
+                col = self.getRegion(row)
+            elif layer == 3:
+                col = l4Label(row)
+            cfg.cascadeDictDefault(bill, [(col, {}), ('TotalCost', 0)])
+            bill = bill[col]
+            bill['TotalCost'] += float(row['TotalCost'])
+            if layer == 4:
+                cfg.cascadeDictDefault(bill, [('UsageQuantity', 0)])
+                bill['UsageQuantity'] += float(row['UsageQuantity'])
+
+    # 从账单行中尽量抽取region信息，向AWS系统中账单层次靠拢
+    def getRegion(self, row):
+        availabilityZone = row.get('AvailabilityZone', '')
+        if availabilityZone:
+            regionCode = availabilityZone if availabilityZone[-1] <= '9' else availabilityZone[:-1]
+            regionName = self.RegionCode2Name.get(regionCode, '')
+            if regionName:
+                return regionName
+
+        productCode = row['ProductCode']
+        splitedUsageType = row['UsageType'].split('-')
+        if productCode == 'AWSGlobalAccelerator':  # AP/NA/Global
+            regionName = splitedUsageType[0]
+        elif productCode == 'awskms':  # usageType中带着regionCode
+            regionCode = 'Global' if len(splitedUsageType) < 3 else '-'.join(splitedUsageType[:3])
+            regionName = self.RegionCode2Name.get(regionCode, 'US East (Northern Virginia)')
+        elif productCode == 'AmazonCloudFront':
+            regionName = self.CloudFrontRegionAbbr2Name.get(splitedUsageType[0], 'Global')
+        else:
+            regionName = self.RegionAbbr2Name.get(splitedUsageType[0], 'US East (Northern Virginia)')
+        return regionName
+
+
+def l4Label(row):
+    product_name = row['ProductName']
+    operation = row['Operation']
+    usage_type = row['UsageType']
+    line_item_description = row['ItemDescription']
+
+    type_ = product_name
+    if product_name == 'Amazon Relational Database Service':
+        type_ = product_name
+        type_ += ' Storage' if 'Storage' in usage_type \
+            else ' for Aurora' if 'Aurora' in line_item_description \
+            else ' for MySQL Community Edition' if 'MySQL' in line_item_description \
+            else ''
+    elif product_name == 'Amazon Elastic Compute Cloud':
+        type_ = operation if 'LoadBalancing' in operation or 'NatGateway' in operation \
+            else 'EBS' if 'EBS' in usage_type \
+            else 'Elastic IP Addresses' if 'ElasticIP' in usage_type \
+            else 'Amazon Elastic Compute Cloud running '
+        if type_ == 'Amazon Elastic Compute Cloud running ':
+            type_ += 'Linux/UNIX' if 'Linux' in line_item_description \
+                else 'Windows' if 'Windows' in line_item_description \
+                else ''
+            type_ += ' Reserved Instances' if 'Linux' in line_item_description \
+                else ' Spot Instances' if 'SpotUsage' in usage_type \
+                else ''
+    elif product_name in ('Amazon API Gateway', 'AWS Database Migration Service', 'Amazon ElastiCache',
+                          'AWS Glue', 'Amazon Kinesis', 'Amazon Kinesis Firehose', 'AWS Global Accelerator'):
+        type_ = product_name + ' ' + operation
+    elif product_name == 'AmazonCloudWatch':
+        type_ = product_name + ' '
+        type_ += usage_type if operation == 'HourlyStorageMetering' \
+            else operation if operation in ('PutLogEvents', 'StartQuery') else ''
+    elif product_name == 'Amazon Elastic File System' and operation == 'Storage':
+        type_ = product_name + ' Standard Storage Class'
+    elif product_name == 'AWS Shield':
+        type_ = product_name + ' ' + usage_type if usage_type == 'Shield-Monthly-Fee' else 'Bandwidth'
+
+    return type_
+
 
 # 下载AWS MR文件
 def downloadAwsMR(payerAccount):
     bucket = boto3.resource('s3').Bucket(cfg.Bucket)
-    fileName = '%s-aws-billing-csv-20%s-%s.csv' % (payerAccount, cfg.BillMonth[:2], cfg.BillMonth[2:])
+    fileName = '%s-aws-cost-allocation-20%s-%s.csv' % (payerAccount, cfg.BillMonth[:2], cfg.BillMonth[2:])
     fileFullname = os.path.join(cfg.TmpPath, fileName)
     cfg.log.info('Downloading [%s]%s(MR)' % (cfg.Bucket, fileName))
     bucket.download_file(fileName, fileFullname)
@@ -178,13 +294,15 @@ def downloadAwsMR(payerAccount):
 
 def mrFileName(row, customerName=None):
     customerName = customerName if customerName else cfg.CustomerNames.get(row['LinkedAccountId'], 'Missing')
-    fileName = '%s-aws-billing-csv-20%s-%s.csv' % (customerName, cfg.BillMonth[:2], cfg.BillMonth[2:])
+    fileName = '%s-%s.csv' % (customerName, cfg.BillMonth)
     return fileName
 
 
+# 重新计算各账户的汇总数据
 def getAccountTotal(file_fullname):
     accountTotal = {}
     with open(file_fullname, 'r', encoding='utf-8', newline='') as fp:
+        fp.readline()  # 抛弃首行提示信息 Don't see your tags in the report....
         for row in csv.DictReader(fp):
             if row['RecordType'] != 'AccountTotal':
                 continue
@@ -206,16 +324,6 @@ def getStatementTotal(row):
     for col in Mr.SumCols:
         row[col] = 0
     return row
-
-
-def add(bill, row):
-    for col in (row['LinkedAccountId'], row['ProductName'], row['UsageType'], row['ItemDescription']):
-        cfg.cascadeDictDefault(bill, [(col, {}), ('TotalCost', 0)])
-        bill = bill[col]
-        bill['TotalCost'] += float(row['TotalCost'])
-        if col == row['ItemDescription']:
-            cfg.cascadeDictDefault(bill, [('UsageQuantity', 0)])
-            bill['UsageQuantity'] += float(row['UsageQuantity'])
 
 
 def sendBill():

@@ -106,13 +106,13 @@ def getUsdExchangeRate(yy_mm):
                 if idx == len(header):
                     break
         else:
-            return 0
+            raise ValueError('no data in html')
 
         for spacing, line in enumerate(html[lines:]):  # 找出表格所处列数，也就是跟相隔行数
             if '<th>现汇卖出价</th>' in line:
                 break
         else:
-            return 0
+            raise ValueError('no data in html')
 
         spacing1 = 0
         lines += spacing
@@ -123,9 +123,9 @@ def getUsdExchangeRate(yy_mm):
             if spacing1 > spacing:
                 break
         else:
-            return 0
+            raise ValueError('no data in html')
     except Exception as err:
-        log.exception(err)
+        log.warning('Cannot get currency: ' + str(err))
         return 0
     exchange_rate = float(line.split('<td>')[-1].split('</td>')[0]) / 100
     log.info('Get USD exchange rate from BOC website：%.3f' % exchange_rate)

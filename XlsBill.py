@@ -66,17 +66,19 @@ class XlsBill(object):
             self.__writeLine(sheet, account, l1Bill, 1)
             for product, l2Bill in l1Bill.items():
                 self.__writeLine(sheet, product, l2Bill, 2)
-                for usageType, l3Bill in l2Bill.items():
-                    self.__writeLine(sheet, usageType, l3Bill, 3)
-                    for description, l4Bill in l3Bill.items():
-                        self.__writeLine(sheet, description, l4Bill, 4)
+                for region, l3Bill in l2Bill.items():
+                    self.__writeLine(sheet, region, l3Bill, 3)
+                    for l4, l4Bill in l3Bill.items():
+                        self.__writeLine(sheet, l4, l4Bill, 4)
+                        for description, l5Bill in l4Bill.items():
+                            self.__writeLine(sheet, description, l5Bill, 5)
             sheet = None
 
     def __writeLine(self, sheet, key, bill, layer):
         self.xlsRow += 1
         description = 'Account:%s' % (key if key else 'All') if layer == 1 else key
         description = '  ' * layer + description
-        usageQuantity = bill['UsageQuantity'] if layer == 4 else ''
+        usageQuantity = bill.get('UsageQuantity', '')
         line = (layer, description, usageQuantity, '', bill['TotalCost'])
         bill.pop('TotalCost')
         for header, data in zip(self.headers['Bill'], line):
