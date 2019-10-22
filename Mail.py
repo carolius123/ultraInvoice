@@ -66,7 +66,7 @@ class Mail(object):
                 msg.attach(att)
 
             self.server.sendmail(self.Sender, receive + self.Bcc, msg.as_string())
-        except Exception as e:
-            cfg.log.exception(e)
+        except Exception as err:
+            cfg.log.warning('Mail failed to sent:' + str(err))
             return
         cfg.log.info('[%s %s] sent to %s' % (sub, attachments[0], ','.join(x for x in receive)))

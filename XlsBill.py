@@ -7,7 +7,6 @@
 #
 import json
 import os
-import random
 from datetime import date
 import xlrd
 import xlwt
@@ -47,12 +46,12 @@ class XlsBill(object):
         for layer in range(6):
             styles[layer] = {header: getStyle(sheet, layer, col) for col, header in enumerate(self.headers['Bill'])}
 
-    def run(self, customerName):
+    def run(self, customerName, invoiceNo):
         with open(os.path.join(cfg.TmpPath, '%s.json' % customerName), 'r', encoding='utf-8') as fp:
             monthBills, invoice = json.load(fp)
 
         self.book = copy.copy(self.template)
-        self.fillInvoice(customerName, invoice)
+        self.fillInvoice(customerName, invoice, invoiceNo)
         self.fillBill(monthBills)
         file_name = os.path.join(cfg.TmpPath, '%s-%s.xls' % (customerName, cfg.BillMonth))
         self.book.save(file_name)  # 保存文件
@@ -91,10 +90,10 @@ class XlsBill(object):
                 writeCell(sheet, self.styles['Bill'][0][header], header)
         return sheet
 
-    def fillInvoice(self, customerName, invoice):
+    def fillInvoice(self, customerName, invoice, invoiceNo):
         cust_obj = cfg.Customers[customerName]
         sheet, styles = self.book.get_sheet('Invoice'), self.styles['Invoice']
-        writeCell(sheet, styles['No'], date.today().strftime('P/I %Y%m') + '%04d' % random.randint(1000, 9999))
+        writeCell(sheet, styles['No'], 'P/I 20%s%04d' % (cfg.BillMonth, invoiceNo))
         writeCell(sheet, styles['Date'], date.today().strftime('%Y-%m-%d'))
         writeCell(sheet, styles['Name'], cust_obj.get('Name', customerName))
         writeCell(sheet, styles['Addr'], cust_obj.get('Addr', ''))

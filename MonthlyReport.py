@@ -234,6 +234,7 @@ def run():
         mr.split(payerAccount)
 
     exchangeRate = cfg.getUsdExchangeRate(cfg.nextMonth(cfg.BillMonth))
+    invoieNo = 0
     for customerName, cust_obj in cfg.Customers.items():
         fileName = mrFileName('', customerName)
         fileFullname = os.path.join(cfg.TmpPath, fileName)
@@ -244,7 +245,8 @@ def run():
             mr.merge(customerName)
         mr.bill(customerName)  # 生成分层账单数据和收据数据
         currency = cust_obj.get('Currency', 'USD').upper()
-        XlsBill(exchangeRate, currency).run(customerName)  # 生成xls账单
+        invoieNo += 1
+        XlsBill(exchangeRate, currency).run(customerName, invoieNo)  # 生成xls账单
     sendBill()  # 邮件发送账单
 
 
