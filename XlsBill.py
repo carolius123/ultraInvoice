@@ -69,14 +69,17 @@ class XlsBill(object):
                 for region, l3Bill in l2Bill.items():
                     self.__writeLine(sheet, region, l3Bill, 3)
                     for l4, l4Bill in l3Bill.items():
-                        self.__writeLine(sheet, l4, l4Bill, 4)
+                        layer = 5 if 'UsageQuantity' in l4Bill.keys() else 4
+                        self.__writeLine(sheet, l4, l4Bill, layer)
+                        if 'UsageQuantity' in l4Bill.keys():
+                            continue
                         for description, l5Bill in l4Bill.items():
                             self.__writeLine(sheet, description, l5Bill, 5)
             sheet = None
 
     def __writeLine(self, sheet, key, bill, layer):
         self.xlsRow += 1
-        description = 'Account:%s' % (key if key else 'All') if layer == 1 else key
+        description = 'Account:%s' % key if layer == 1 else key
         description = '  ' * layer + description
         usageQuantity = bill.get('UsageQuantity', '')
         line = (layer, description, usageQuantity, '', bill['TotalCost'])
@@ -90,12 +93,18 @@ class XlsBill(object):
             for idx, header in enumerate(self.headers['Bill']):
                 sheet.col(idx).width = colWidth[idx]
                 writeCell(sheet, self.styles['Bill'][0][header], header)
+        sheet.pans_frozen = True
+        sheet.horz_split_pos = 1
+
         return sheet
 
     def fillInvoice(self, customerName, invoice, invoiceNo):
         cust_obj = cfg.Customers[customerName]
         sheet, styles = self.book.get_sheet('Invoice'), self.styles['Invoice']
-        writeCell(sheet, styles['No'], 'P/I 20%s%04d' % (cfg.BillMonth, invoiceNo))
+        sheet.show_headers = False
+        sheet.footer_str = b''
+        sheet.header_str = b''
+        writeCell(sheet, styles['No'], 'P/I 20%s%04d' % (cfg.nextMonth(cfg.BillMonth), invoiceNo))
         writeCell(sheet, styles['Date'], date.today().strftime('%Y-%m-%d'))
         writeCell(sheet, styles['Name'], cust_obj.get('Name', customerName))
         writeCell(sheet, styles['Addr'], cust_obj.get('Addr', ''))
@@ -113,8 +122,8 @@ class XlsBill(object):
         writeCell(sheet, styles['Amount'], xlwt.Formula("SUM(D12:D26)"))
 
         if self.currency == 'RMB2USD':
-            writeCell(sheet, styles['TotalRmb'], '应付人民币总额(汇率：%g)' % self.exchangeRate)
-            writeCell(sheet, styles['AmountRmb'], xlwt.Formula("D27*(1+B29)*%g" % self.exchangeRate))
+            writeCell(sheet, styles['TotalRmb'], '应付人民币总额(汇率：%.4f, 税率：17%%)' % self.exchangeRate)
+            writeCell(sheet, styles['AmountRmb'], xlwt.Formula("D27*(1+B29)*%.4f" % self.exchangeRate))
 
 
 def writeCell(sheet, template_cell, value, row=None, col=None):

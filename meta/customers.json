@@ -38,7 +38,10 @@
 	},
 	"美百极致": {
 		"Accounts": {
-			"448880144775": {}
+			"448880144775": {
+				"Name": "mbyte",
+				"Discount": 4
+			}
 		},
 		"FirstJoinedTime": "19-09-29",
 		"Addr": "No.1108, Wangjing SOHO Center T2 Building A, Chaoyang District Beijing",
@@ -58,11 +61,25 @@
 		"Accounts": {
 			"821950253708": {}
 		},
-		"FirstJoinedTime": "19-09-09"
+		"Addr": "UNIT 212,2/F MIRROR TOWER 61 MODY RD TST EAST KL",
+		"FirstJoinedTime": "19-09-09",
+		"Name": "ONEGAME HOLDING LIMITED",
+		"Tel": "+86 15994225894"
 	},
 	"炫踪": {
 		"Accounts": {
-			"288705001091": {}
+			"288705001091": {
+				"Name": "Frank Lee",
+				"Discount": 2
+			},
+			"574974241575": {
+				"Name": "shinezone_aws",
+				"Discount": 2
+			},
+			"170475546440": {
+				"Name": "shinezone_aws02",
+				"Discount": 2
+			}
 		},
 		"Addr": "unit 2508A,25/F BANK OF AMERICA TOWER 12 HARCOURT ROAD CENTRAL HONG KONG CHINA",
 		"FirstJoinedTime": "19-08-19",
@@ -110,6 +127,7 @@
 		"Tel": "028-86198523"
 	},
 	"绝地科技": {
+		"Csv": 1,
 		"Accounts": {
 			"416943854918": {}
 		},
@@ -127,9 +145,10 @@
 		"Name": "Lilith Technology Hong Kong Limited",
 		"Tel": "+86 18988842198"
 	},
-	"阿哇龙": {
+	"阿瓦隆": {
 		"Accounts": {
 			"388583281175": {},
+			"719444933667": {},
 			"732997581574": {}
 		},
 		"FirstJoinedTime": "19-04-17",
@@ -147,24 +166,54 @@
 		},
 		"FirstJoinedTime": "19-09-29"
 	},
+	"游道科技": {
+		"Accounts": {
+			"247255971890": {}
+		},
+		"Addr": "ROOM 1318-19 HOLLYWOOD PLAZA NO. 610 NATHAN ROAD MONGKOK KLN",
+		"FirstJoinedTime": "19-10-31",
+		"Name": "DAOPLAY TECHNOLOGY (HK) CO., LIMITED",
+		"Tel": "+8618010564935"
+	},
+	"chicv": {
+		"Accounts": {
+			"257379296052": {}
+		},
+		"Addr": "RM 1501 (682),15/F SPA CTR 53-55 LOCKHART RD WANCHAI HONG KONG",
+		"FirstJoinedTime": "19-10-18",
+		"Name": "CHICV INTERNATIONAL HOLDING LIMITED"
+	},
 	"诗悦": {
 		"Accounts": {
 			"361735289382": {}
 		},
-		"FirstJoinedTime": "19-09-29"
+		"Addr": "SUITE 603,6/F LAWS COMM PLAZA 788 CHEUNG SHA WAN RD KL",
+		"FirstJoinedTime": "19-09-29",
+		"Name": "Shiyue game limited",
+		"Tel": "13430305379"
 	},
 	"万游网络": {
 		"Accounts": {
 			"449644015512": {}
 		},
-		"FirstJoinedTime": "19-10-08"
+		"Addr": "FLAT/RM 1605,HO KING COMMERCIAL CENTRE ,2-16 FA YUEN STREET, MONGKOK KL",
+		"FirstJoinedTime": "19-10-08",
+		"Name": "GAMEGOU LIMITED",
+		"Tel": "010-82273201"
 	},
 	"七七游": {
 		"Accounts": {
-			"950174899702": {},
-			"857328109807": {}
+			"950174899702": {
+				"Name": "qiqiyou",
+				"Discount": 6
+			},
+			"857328109807": {
+				"Name": "witgame"
+			}
 		},
-		"FirstJoinedTime": "19-09-29"
+		"Addr": "FLAT/RM A 12/F, KIU FU COMMERCIAL BLDG, 300 LOCKHART ROAD, WAN CHAI, HONG KONG",
+		"FirstJoinedTime": "19-09-29",
+		"Name": "HK QIQIYOU NETWORK TECHNOLOGY LIMITED"
 	},
 	"TAP4FUN": {
 		"Accounts": {
@@ -180,8 +229,9 @@
 			"598331460179": {}
 		},
 		"FirstJoinedTime": "19-09-20",
-		"Addr": "Unit 402, 4th Floor, Fairmont House, No.8 Cotton Tree Drive, Admiralty, Hong Kong",
+		"Addr": "WeWork 180 Wai Yip St, Two Harbour Square, 26/F， Kwun Tong Hong Kong, Hong Kong",
 		"Name": "TAP4FUN (HONGKONG) LIMITED ",
-		"Tel": "+86 18988842198"
+		"SupportRate": 4,
+		"Tel": "+86 15928735265"
 	}
 }

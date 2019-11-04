@@ -128,5 +128,5 @@ def getUsdExchangeRate(yy_mm):
         log.warning('Cannot get currency: ' + str(err))
         return 0
     exchange_rate = float(line.split('<td>')[-1].split('</td>')[0]) / 100
-    log.info('Get USD exchange rate from BOC website：%.3f' % exchange_rate)
+    log.info('Get USD exchange rate from BOC website：%f' % exchange_rate)
     return exchange_rate
