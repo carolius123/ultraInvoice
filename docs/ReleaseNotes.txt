@@ -13,18 +13,17 @@
 4. [R]月账单增加Region层，尽量贴近系统中层次分类
 
 2.2
-1. [R]汇率取小数点后4位。收据中最后一行显示税率：17%
-2. [R]收据编号中日期从账单月当改为下月
-3. [R]去掉Invoice页眉页脚，方便打印
-4. [B]使收据中"其他"在所有正值行之后
-5. [Optimize] 详单中去掉意义不大的第4层；
-6. [O]泰岳折扣、Credit等负值的行对应No Region；
-7. [B]解决汇总详单RI/OD混合问题[只按产品和usage汇总不对]
-8. [O]泰岳折扣优先使用customer的Discount属性，其次使用Account的
-9. [R]按照总账单百分百收取Partner-led Support费用，优先使用customer的SupportRate属性，其次使用Account的
+- [Request]汇率取小数点后4位。收据中最后一行显示税率：17%
+- [R]收据编号中日期从账单月当改为下月
+- [R]去掉Invoice页眉页脚，方便打印
+- [R]按照总账单百分百收取Partner-led Support费用，优先使用customer的SupportRate属性，其次使用Account的
+- [Bug]使收据中"其他"在所有正值行之后
+- [B]解决汇总详单RI/OD混合问题[只按产品和usage汇总不对]
+- [Optimize] 优化详单层次，去掉意义不大的第4层，同时尽量靠近AWS系统中账单；
+- [O]泰岳折扣、Credit等负值的行对应No Region；
+- [O]泰岳折扣优先使用customer的Discount属性，其次使用Account的
+- [O]详单Sheet设置首行冻结
 
 TBD
 - [R]按AWS Support费用打折收取Partner-led Support费用，优先使用customer的SupportDiscount属性，其次使用Account的
-- PMO审批导入需求？
-- 没有显示第一个sheet
-- excel 增加冻结和筛选
+- [O]excel 增加筛选

@@ -269,10 +269,11 @@ class JsonFile(object):
             regionName = self.RegionAbbr2Name.get(splitedUsageType[0], 'US East (Northern Virginia)')
         return regionName
 
-    RdsL4 = {' storage ': ' Storage and I/O', ' I/O requests ': ' Storage and I/O',
-             'Aurora': ' for Aurora', 'MySQL': ' for MySQL Community Edition',
-             'backup storage': ' Backup Storage', 'rovisioned ': ' Provisioned Storage'
-             }
+    RdsL4 = {
+        'backup storage': ' Backup Storage', 'rovisioned ': ' Provisioned Storage',
+        ' storage ': ' Storage and I/O', ' I/O requests ': ' Storage and I/O',
+        'Aurora': ' for Aurora', 'MySQL': ' for MySQL Community Edition'
+    }
 
     def __l4Label(self, row):
         product_name = row['ProductName']
@@ -397,8 +398,7 @@ def run():
         currency = cust_obj.get('Currency', 'USD').upper()
         invoieNo += 1
         XlsBill(exchangeRate, currency).run(customerName, invoieNo)  # 生成xls账单
-        x = 1
-    # sendBill()  # 邮件发送账单
+    sendBill()  # 邮件发送账单
 
 
 # AWSLamda调用的入口函数

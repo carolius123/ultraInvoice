@@ -93,7 +93,7 @@ class XlsBill(object):
             for idx, header in enumerate(self.headers['Bill']):
                 sheet.col(idx).width = colWidth[idx]
                 writeCell(sheet, self.styles['Bill'][0][header], header)
-        sheet.pans_frozen = True
+        sheet.panes_frozen = True
         sheet.horz_split_pos = 1
 
         return sheet
